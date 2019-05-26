@@ -24,26 +24,9 @@ fi
 source "${target}/bin/activate"
 pip install --upgrade -r "${BASEDIR}/requirements.txt"
 
-cd $BASEDIR/proto
+outdir="${BASEDIR}/pycue/opencue/compiled_proto"
+cd "${BASEDIR}/proto"
 python -m grpc_tools.protoc -I=. \
-    --python_out=../pycue/opencue/compiled_proto \
-    --grpc_python_out=../pycue/opencue/compiled_proto \
+    --python_out="${outdir}" \
+    --grpc_python_out="${outdir}" \
     ./*.proto
-
-cd $BASEDIR/pycue
-python setup.py install
-
-cd $BASEDIR/pyoutline
-python setup.py install
-
-cd $BASEDIR/rqd
-python setup.py install
-
-cd $BASEDIR/cuesubmit
-python setup.py install
-
-cd $BASEDIR/cuegui
-python setup.py install
-
-cd $BASEDIR/cueadmin
-python setup.py install

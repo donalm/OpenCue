@@ -5,13 +5,13 @@ source "${BASEDIR}/bin/tooling/database_credentials.sh"
 source "${BASEDIR}/bin/tooling/update_environment.sh"
 
 if [[ ! -e "${CUE_FS_ROOT}" ]]; then
-    mkdir -p "${CUE_FS_ROOT}"
+    sudo mkdir -p "${CUE_FS_ROOT}"
 fi
 
 "${BASEDIR}/bin/tooling/build_cuebot.sh" &
 FIRST_PID=$!
 
-"${BASEDIR}/bin/tooling/build_venv.sh 2"
-"${BASEDIR}/bin/tooling/build_venv.sh 3"
+"${BASEDIR}/bin/tooling/build_venv.sh" "2"
+"${BASEDIR}/bin/tooling/build_venv.sh" "3"
 
 wait $FIRST_PID
