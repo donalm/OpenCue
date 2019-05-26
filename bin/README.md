@@ -1,14 +1,15 @@
 # Development Tooling
 
 It can be useful to configure the applications to run directly from the
-checkout of OpenCue that you're developing on. The scripts in this directory
-tree setup a basic deployment of OpenCue on one machine (your workstation, for
-example) and then bootstrap the individual applications to launch using your
-code.
+checkout of OpenCue that you're developing on.
 
-The 'rebuild' script can be helpful to run to setup a new installation of
-OpenCue. It just expects you to have Postgres installed (including the contrib
-rpm) and it needs python2, python3 and virtualenv to be available.
+The scripts in this directory tree configure a basic deployment of OpenCue on
+one machine (your workstation, for example) and then bootstrap the individual
+applications to launch using your checkout.
+
+The 'rebuild' script setup a new installation of OpenCue. It just expects you
+to have Postgres installed (including the contrib rpm) and it needs python2,
+python3 and virtualenv to be available.
 
 ## Config Files
 
