@@ -27,9 +27,26 @@ activate="${BASEDIR}/venv_py${v}/bin/activate"
 source "${activate}"
 
 # regenerate the compiled protobuffs protocols for this python version
-outdir="${BASEDIR}/rqd/rqd/compiled_proto"
-cd ${BASEDIR}/proto
-python -m grpc_tools.protoc -I=. --python_out="${outdir}" --grpc_python_out="${outdir}" ./*.proto
-cd $BASEDIR
+if [[ "${v}" == "3" ]]; then
+    outdir="${BASEDIR}/rqd/rqd"
+    cd "${BASEDIR}"
+    rm -rf "${BASEDIR}/_temp_proto"
+    mkdir -p "${BASEDIR}/_temp_proto/compiled_proto"
+    cp -a "${BASEDIR}/proto"  "${BASEDIR}/_temp_proto/proto"
+    cd "${BASEDIR}/_temp_proto"
+    python -m grpc_tools.protoc -I./proto --python_out=./compiled_proto --grpc_python_out=./compiled_proto ./proto/*.proto
+    cd "${BASEDIR}/_temp_proto/compiled_proto"
+    sed -i -E 's/^import.*_pb2/from . \0/' *.py
+    cp -a "${BASEDIR}/_temp_proto/compiled_proto" "${BASEDIR}/rqd/rqd/"
+else
+    # regenerate the compiled protobuffs protocols for this python version
+    outdir="${BASEDIR}/rqd/rqd/compiled_proto"
+    cd "${BASEDIR}"
+    python -m grpc_tools.protoc -I=./proto --python_out="${outdir}" --grpc_python_out="${outdir}" ./proto/*.proto
+    cd "${outdir}"
+    sed -i -E 's/^import.*_pb2/from . \0/' *.py
+    cd $BASEDIR
+fi
 
-exec "${BASEDIR}/venv_py${v}/bin/python" "${BASEDIR}/bin/tooling/pythonpath/rqd/__main__.py"
+
+exec "${BASEDIR}/venv_py${v}/bin/python"  "${BASEDIR}/bin/tooling/run_rqd.py"
