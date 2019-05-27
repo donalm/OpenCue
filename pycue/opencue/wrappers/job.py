@@ -351,11 +351,17 @@ class Job(object):
         @return: Uid of job owner"""
         return self.data.uid
 
-    def username(self):
+    def user(self):
         """Returns the username of the person who owns the job
         @rtype: str
         @return: Username of job owner"""
         return self.data.user
+
+    def username(self):
+        """Returns the username of the person who owns the job
+        @rtype: str
+        @return: Username of job owner"""
+        return self.user()
 
     def state(self):
         """Returns the job state
@@ -380,6 +386,12 @@ class Job(object):
         @rtype:  int
         @return: Job's maxProcs"""
         return self.data.max_cores
+
+    def os(self):
+        """Returns the job's os
+        @rtype: str
+        @return: os name of the Job"""
+        return self.data.os
 
     def startTime(self, format=None):
         """Returns the job start time in the desired format
@@ -525,9 +537,10 @@ class Job(object):
         @rtype: dict
         @return: total number of frames in each state"""
         if not hasattr(self, "__frameStateTotals"):
-            self.__frameStateTotals = {
-                (a, getattr(self.data.job_stats, "%s_frames" % a.lower(), 0))
-                for a in job_pb2.FrameState.keys()}
+            self.__frameStateTotals = {}
+            for state in job_pb2.FrameState.keys():
+                frameCount = getattr(self.data.job_stats, '{}_frames'.format(state.lower()), 0)
+                self.__frameStateTotals[getattr(job_pb2, state)] = frameCount
         return self.__frameStateTotals
 
     def percentCompleted(self):
