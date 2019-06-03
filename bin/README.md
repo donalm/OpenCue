@@ -7,7 +7,7 @@ The scripts in this directory tree configure a basic deployment of OpenCue on
 one machine (your workstation, for example) and then bootstrap the individual
 applications to launch using your checkout.
 
-The 'rebuild' script setup a new installation of OpenCue. It just expects you
+The 'rebuild' script sets up a new installation of OpenCue. It just expects you
 to have Postgres installed (including the contrib rpm) and it needs python2,
 python3 and virtualenv to be available.
 
