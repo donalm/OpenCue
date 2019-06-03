@@ -49,4 +49,5 @@ else
 fi
 
 
-exec "${BASEDIR}/venv_py${v}/bin/python"  "${BASEDIR}/bin/tooling/run_rqd.py"
+cd "${BASEDIR}/rqd"
+exec "${BASEDIR}/venv_py${v}/bin/python" -m "rqd"
