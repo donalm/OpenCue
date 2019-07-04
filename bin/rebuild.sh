@@ -8,6 +8,7 @@ if [[ ! -e "${CUE_FS_ROOT}" ]]; then
     sudo mkdir -p "${CUE_FS_ROOT}"
 fi
 
+#/bin/sleep 4 &
 "${BASEDIR}/bin/tooling/build_cuebot.sh" &
 FIRST_PID=$!
 

@@ -6,6 +6,7 @@ export CUEBOT_HOSTNAME="localhost"
 export CUE_FS_ROOT=/var/opencue
 export PYTHONDONTWRITEBYTECODE=1
 export OPENCUE_CONF="${BASEDIR}/bin/tooling/opencue_conf.yaml"
+export OL_CONFIG="${BASEDIR}/bin/tooling/etc/outline.cfg"
 
 local_mods="${BASEDIR}/bin/tooling/local_environment_mods.sh"
 if [ -e "${local_mods}" ]; then

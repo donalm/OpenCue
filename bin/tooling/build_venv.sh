@@ -18,10 +18,14 @@ fi
 
 target="${BASEDIR}/venv_py${majver}"
 if [[ ! -e $target ]]; then
-    virtualenv -p $interpreter $target
+    if [[ -e "${VIRTUALENV}" ]]; then
+        VIRTUALENV=`which virtualenv`
+    fi
+    "${VIRTUALENV}" -p $interpreter $target
 fi
 
 source "${target}/bin/activate"
+pip install --upgrade pip setuptools
 pip install --upgrade -r "${BASEDIR}/requirements.txt"
 
 outdir="${BASEDIR}/pycue/opencue/compiled_proto"
