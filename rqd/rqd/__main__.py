@@ -84,6 +84,10 @@ PLAYBLAST = True
 SVN: $Id$
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 
 import getopt
 import logging as log
@@ -114,20 +118,20 @@ def setupLogging():
 
 setupLogging()
 
-from rqcore import RqCore
-import rqutil
-import rqconstants
+from rqd.rqcore import RqCore
+from rqd import rqutil
+from rqd import rqconstants
 
 def usage():
     """Prints command line syntax"""
-    s = sys.stderr
-    print >> s, "SYNOPSIS"
-    print >> s, "  ", sys.argv[0], "[options]\n"
-    print >> s, "  -d | --daemon          => Run as daemon"
-    print >> s, "       --nimbyoff        => Disables nimby activation"
-    print >> s, "  -c                     => Provide an alternate config file"
-    print >> s, "                            Defaults to /etc/rqd3/rqd3.conf"
-    print >> s, "                            Config file is optional"
+    synopsis = ("SYNOPSIS",
+                "   {} [options]\n".format(sys.argv[0]),
+                "  -d | --daemon          => Run as daemon",
+                "       --nimbyoff        => Disables nimby activation",
+                "  -c                     => Provide an alternate config file",
+                "                            Defaults to /etc/rqd3/rqd3.conf",
+                "                            Config file is optional\n")
+    sys.stderr.write("\n".join(synopsis))
 
 def main():
     if platform.system() == 'Linux' and os.getuid() != 0:

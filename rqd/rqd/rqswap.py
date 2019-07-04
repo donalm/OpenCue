@@ -20,8 +20,11 @@
 Utility classes and functions to get virtual memory page out number.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
-from __future__ import with_statement
+
 import logging as log
 import re
 import threading
@@ -223,5 +226,5 @@ if __name__ == "__main__":
     vmstat = VmStat()
     while 1:
         time.sleep(2)
-        print vmstat.getPgoutRate(), vmstat.getRecentPgoutRate()
+        print("{} {}".format(vmstat.getPgoutRate(), vmstat.getRecentPgoutRate()))
 

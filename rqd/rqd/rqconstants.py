@@ -12,13 +12,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-
 """
 Constants.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
-import commands
+
 import logging
 import os
 import platform
@@ -105,7 +107,7 @@ ALLOW_GPU = False
 ALLOW_PLAYBLAST = False
 LOAD_MODIFIER = 0 # amount to add/subtract from load
 
-if commands.getoutput('/bin/su --help').find('session-command') != -1:
+if subprocess.check_output(["/bin/su", "--help"]).find(b"session-command") != -1:
     SU_ARGUEMENT = '--session-command'
 else:
     SU_ARGUEMENT = '-c'
@@ -173,6 +175,6 @@ try:
             DEFAULT_FACILITY = config.get(__section, "DEFAULT_FACILITY")
         if config.has_option(__section, "LAUNCH_FRAME_USER_GID"):
             LAUNCH_FRAME_USER_GID = config.getint(__section, "LAUNCH_FRAME_USER_GID")
-except Exception, e:
+except Exception as e:
     logging.warning("Failed to read values from config file %s due to %s at %s" % (CONFIG_FILE, e, traceback.extract_tb(sys.exc_info()[2])))
 

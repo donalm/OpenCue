@@ -27,6 +27,11 @@ Contact: Middle-Tier
 SVN: $Id$
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+
 import logging as log
 import os
 import platform
@@ -39,18 +44,18 @@ import threading
 import time
 import traceback
 
-import rqconstants
-import rqutil
-from compiled_proto import host_pb2
-from compiled_proto import report_pb2
-from rqexceptions import CoreReservationFailureException
-from rqexceptions import DuplicateFrameViolationException
-from rqexceptions import InvalidUserException
-from rqexceptions import RqdException
-from rqmachine import Machine
-from rqnetwork import Network
-from rqnetwork import RunningFrame
-from rqnimby import Nimby
+from rqd import rqconstants
+from rqd import rqutil
+from rqd.compiled_proto import host_pb2
+from rqd.compiled_proto import report_pb2
+from rqd.rqexceptions import CoreReservationFailureException
+from rqd.rqexceptions import DuplicateFrameViolationException
+from rqd.rqexceptions import InvalidUserException
+from rqd.rqexceptions import RqdException
+from rqd.rqmachine import Machine
+from rqd.rqnetwork import Network
+from rqd.rqnetwork import RunningFrame
+from rqd.rqnimby import Nimby
 
 
 class FrameAttendantThread(threading.Thread):
@@ -129,9 +134,9 @@ class FrameAttendantThread(threading.Thread):
             self._tempLocations.append(commandFile)
             rqexe.write(command)
             rqexe.close()
-            os.chmod(commandFile, 0777)
+            os.chmod(commandFile, 0o777)
             return commandFile
-        except Exception, e:
+        except Exception as e:
             log.critical("Unable to make command file: %s due to %s at %s" % (
                 commandFile, e, traceback.extract_tb(sys.exc_info()[2])))
 
@@ -141,29 +146,36 @@ class FrameAttendantThread(threading.Thread):
         self.startTime = time.time()
 
         try:
-            print >> self.rqlog, "="*59
-            print >> self.rqlog, "RenderQ JobSpec     ", time.ctime(self.startTime), "\n"
-            print >> self.rqlog, "proxy               ", "RunningFrame/%s -t:tcp -h %s -p 10021" % (
-                self.runFrame.frame_id,
-                self.rqCore.machine.getHostname())
-            print >> self.rqlog, "%-21s%s" % ("command", self.runFrame.command)
-            print >> self.rqlog, "%-21s%s" % ("uid", self.runFrame.uid)
-            print >> self.rqlog, "%-21s%s" % ("gid", self.runFrame.gid)
-            print >> self.rqlog, "%-21s%s" % ("logDestination",
-                                              self.runFrame.log_dir_file)
-            print >> self.rqlog, "%-21s%s" % ("cwd", self.runFrame.frame_temp_dir)
-            print >> self.rqlog, "%-21s%s" % ("renderHost",
-                                              self.rqCore.machine.getHostname())
-            print >> self.rqlog, "%-21s%s" % ("jobId", self.runFrame.job_id)
-            print >> self.rqlog, "%-21s%s" % ("frameId", self.runFrame.frame_id)
+            lines = [
+                "="*59,
+                "RenderQ JobSpec      {} \n".format(time.ctime(self.startTime)),
+                "proxy                RunningFrame/{} -t:tcp -h {} -p 10021".format(
+                    self.runFrame.frame_id,
+                    self.rqCore.machine.getHostname()
+                ),
+                "{:21s}{}".format("command", self.runFrame.command),
+                "{:21s}{}".format("uid", self.runFrame.uid),
+                "{:21s}{}".format("gid", self.runFrame.gid),
+                "{:21s}{}".format("logDestination", self.runFrame.log_dir_file),
+                "{:21s}{}".format("cwd", self.runFrame.frame_temp_dir),
+                "{:21s}{}".format("renderHost", self.rqCore.machine.getHostname()),
+                "{:21s}{}".format("jobId", self.runFrame.job_id),
+                "{:21s}{}".format("frameId", self.runFrame.frame_id),
+            ]
+
             for env in sorted(self.frameEnv):
-                print >> self.rqlog, "%-21s%s=%s" % ("env", env, self.frameEnv[env])
-            print >> self.rqlog, "="*59
+                lines.append("{:21s}{}={}".format("env", env, self.frameEnv[env]))
+            lines.append("="*59)
 
-            if 'CPU_LIST' in self.runFrame.attributes:
-                print >> self.rqlog, 'Hyper-threading enabled'
+            if "CPU_LIST" in self.runFrame.attributes:
+                lines.append("Hyper-threading enabled")
 
-        except Exception, e:
+            lines.append("") # Force a newline at the end
+
+            data = ("\n".join(lines)).encode("utf-8")
+            self.rqlog.write(data)
+
+        except Exception as e:
             log.critical("Unable to write header to rqlog: "
                          "%s due to %s at %s" %
                          (self.runFrame.log_dir_file, e,
@@ -175,22 +187,33 @@ class FrameAttendantThread(threading.Thread):
         self.endTime = time.time()
         self.frameInfo.runTime = int(self.endTime - self.startTime)
         try:
-            print >> self.rqlog, "\n", "="*59
-            print >> self.rqlog, "RenderQ Job Complete\n"
-            print >> self.rqlog, "%-20s%s" % ("exitStatus", self.frameInfo.exitStatus)
-            print >> self.rqlog, "%-20s%s" % ("exitSignal", self.frameInfo.exitSignal)
+            lines = [
+                "",
+                "="*59,
+                "RenderQ Job Complete\n",
+                "{:20s}{}".format("exitStatus", self.frameInfo.exitStatus),
+                "{:20s}{}".format("exitSignal", self.frameInfo.exitSignal),
+            ]
             if self.frameInfo.killMessage:
-                print >> self.rqlog, "%-20s%s" % ("killMessage", self.frameInfo.killMessage)
-            print >> self.rqlog, "%-20s%s" % ("startTime",
-                                         time.ctime(self.startTime))
-            print >> self.rqlog, "%-20s%s" % ("endTime",
-                                         time.ctime(self.endTime))
-            print >> self.rqlog, "%-20s%s" % ("maxrss", self.frameInfo.maxRss)
-            print >> self.rqlog, "%-20s%s" % ("utime", self.frameInfo.utime)
-            print >> self.rqlog, "%-20s%s" % ("stime", self.frameInfo.stime)
-            print >> self.rqlog, "%-20s%s" % ("renderhost", self.rqCore.machine.getHostname())
-            print >> self.rqlog, "="*59
-        except Exception, e:
+                lines.append("{:20s}{}".format(
+                    "killMessage", self.frameInfo.killMessage)
+                )
+            lines.extend(
+                [
+                    "{:20s}{}".format("startTime", time.ctime(self.startTime)),
+                    "{:20s}{}".format("endTime", time.ctime(self.endTime)),
+                    "{:20s}{}".format("maxrss", self.frameInfo.maxRss),
+                    "{:20s}{}".format("utime", self.frameInfo.utime),
+                    "{:20s}{}".format("stime", self.frameInfo.stime),
+                    "{:20s}{}".format("renderhost", self.rqCore.machine.getHostname()),
+                    "="*59,
+                ]
+            )
+
+            data = ("\n".join(lines)).encode("utf-8")
+            self.rqlog.write(data)
+
+        except Exception as e:
             log.critical("Unable to write footer: %s due to %s at %s" %
                          (self.runFrame.log_dir_file, e,
                           traceback.extract_tb(sys.exc_info()[2])))
@@ -224,7 +247,7 @@ class FrameAttendantThread(threading.Thread):
                 if os.path.isfile(location):
                     try:
                         os.remove(location)
-                    except Exception, e:
+                    except Exception as e:
                         log.warning("Unable to delete file: %s due to %s at %s" % (
                             location, e, traceback.extract_tb(sys.exc_info()[2])))
         finally:
@@ -233,7 +256,7 @@ class FrameAttendantThread(threading.Thread):
         # Close log file
         try:
             self.rqlog.close()
-        except Exception, e:
+        except Exception as e:
             log.warning("Unable to close file: %s due to %s at %s" % (
                 self.runFrame.log_file, e, traceback.extract_tb(sys.exc_info()[2])))
 
@@ -328,7 +351,7 @@ class FrameAttendantThread(threading.Thread):
                                                        stdin=subprocess.PIPE,
                                                        stdout=self.rqlog,
                                                        stderr=self.rqlog)
-        except:
+        except Exception:
             log.critical("Failed subprocess.Popen: Due to: \n%s" % ''.join(
                 traceback.format_exception(*sys.exc_info())))
 
@@ -446,8 +469,8 @@ class FrameAttendantThread(threading.Thread):
                         msg = "No Error"
                         try:
                             os.makedirs(runFrame.log_dir)
-                            os.chmod(runFrame.log_dir, 0777)
-                        except Exception, e:
+                            os.chmod(runFrame.log_dir, 0o777)
+                        except Exception as e:
                             # This is expected to fail when called in abq
                             # But the directory should now be visible
                             msg = e
@@ -455,11 +478,11 @@ class FrameAttendantThread(threading.Thread):
                         if not os.access(runFrame.log_dir, os.F_OK):
                             err = "Unable to see log directory: %s, mkdir failed with: %s" % (
                                 runFrame.log_dir, msg)
-                            raise RuntimeError, err
+                            raise RuntimeError(err)
 
                     if not os.access(runFrame.log_dir, os.W_OK):
                         err = "Unable to write to log directory %s" % runFrame.log_dir
-                        raise RuntimeError, err
+                        raise RuntimeError(err)
 
                     try:
                         # Rotate any old logs to a max of MAX_LOG_FILES:
@@ -470,18 +493,23 @@ class FrameAttendantThread(threading.Thread):
                                 rotateCount += 1
                             os.rename(runFrame.log_dir_file,
                                       "%s.%s" % (runFrame.log_dir_file, rotateCount))
-                    except Exception, e:
+                    except Exception as e:
                         err = "Unable to rotate previous log file due to %s" % e
-                        raise RuntimeError, err
+                        raise RuntimeError(err)
                     try:
-                        self.rqlog = file(runFrame.log_dir_file, "w", 0)
+                        """
+                        To get unbuffered IO, we must open the file in binary
+                        mode. As a consequence, we must encode all text to
+                        utf-8 before we write it to the file.
+                        """
+                        self.rqlog = open(runFrame.log_dir_file, "wb", buffering=0)
                         self.waitForFile(runFrame.log_dir_file)
-                    except Exception, e:
+                    except Exception as e:
                         err = "Unable to write to %s due to %s" % (runFrame.log_dir_file, e)
-                        raise RuntimeError, err
+                        raise RuntimeError(err)
                     try:
-                        os.chmod(runFrame.log_dir_file, 0666)
-                    except Exception, e:
+                        os.chmod(runFrame.log_dir_file, 0o666)
+                    except Exception as e:
                         err = "Failed to chmod log file! %s due to %s" % (runFrame.log_dir_file, e)
                         log.warning(err)
 
@@ -502,7 +530,7 @@ class FrameAttendantThread(threading.Thread):
                 else:
                     self.runUnknown()
 
-            except Exception, e:
+            except Exception as e:
                 log.critical("Failed launchFrame: For %s due to: \n%s" % (
                     runFrame.frame_id,
                     ''.join(traceback.format_exception(*sys.exc_info()))))
@@ -655,7 +683,7 @@ class RqCore(object):
         @param runningFrame: RunningFrame object"""
         self.__threadLock.acquire()
         try:
-            if self.__cache.has_key(frameId):
+            if frameId in self.__cache:
                 raise RqdException("frameId " + frameId + " is already running on this machine")
             self.__cache[frameId] = runningFrame
         finally:
@@ -667,7 +695,7 @@ class RqCore(object):
         @param frameId: A frame's unique Id"""
         self.__threadLock.acquire()
         try:
-            if self.__cache.has_key(frameId):
+            if frameId in self.__cache:
                 del self.__cache[frameId]
         finally:
             self.__threadLock.release()
@@ -779,7 +807,7 @@ class RqCore(object):
             log.info(err)
             raise CoreReservationFailureException(err)
 
-        if self.__cache.has_key(runFrame.frame_id):
+        if runFrame.frame_id in self.__cache:
             err = "Not launching, frame is already running on this proc %s" % runFrame.frame_id
             log.critical(err)
             raise DuplicateFrameViolationException(err)
@@ -890,7 +918,7 @@ class RqCore(object):
             try:
                 self.nimby.start()
                 log.info("Nimby has been activated")
-            except:
+            except Exception:
                 self.nimby.locked = False
                 err = "Nimby is in the process of shutting down"
                 log.warning(err)

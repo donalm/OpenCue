@@ -28,6 +28,11 @@ Contact: Middle-Tier
 SVN: $Id$
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+
 import os
 import select
 import time
@@ -35,8 +40,8 @@ import signal
 import threading
 import logging as log
 
-import rqconstants
-import rqutil
+from rqd import rqconstants
+from rqd import rqutil
 
 class Nimby(threading.Thread):
     """Nimby == Not In My Back Yard.
@@ -93,7 +98,7 @@ class Nimby(threading.Thread):
                     log.debug("Found device: %s" % device)
                     try:
                         self.fileObjList.append(open("/dev/input/%s" % device, "rb"))
-                    except IOError, e:
+                    except IOError as e:
                         # Bad device found
                         log.debug("IOError: Failed to open %s, %s" % ("/dev/input/%s" % device, e))
         finally:
@@ -222,6 +227,6 @@ if __name__ == "__main__":
     nimby.start()
 
     time.sleep(30)
-    print "calling stop"
+    print("calling stop")
     nimby.stop()
 
