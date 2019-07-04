@@ -4,6 +4,8 @@ export BASEDIR=$(cd -P -- "$(dirname -- "$(/usr/bin/realpath -- "$(dirname -- "$
 source "${BASEDIR}/bin/tooling/database_credentials.sh"
 source "${BASEDIR}/bin/tooling/update_environment.sh"
 
+sed -e "s|<BASEDIR>|${BASEDIR}|" "${BASEDIR}/bin/tooling/etc/outline.cfg.tmpl" > "${BASEDIR}/bin/tooling/etc/outline.cfg"
+
 if [[ ! -e "${CUE_FS_ROOT}" ]]; then
     sudo mkdir -p "${CUE_FS_ROOT}"
 fi
