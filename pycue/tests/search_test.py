@@ -48,6 +48,7 @@ class JobSearchTests(unittest.TestCase):
 
     def testBaseSearchHost(self, getStubMock):
         stubMock = mock.Mock()
+        stubMock.GetHosts.return_value = host_pb2.HostGetHostsResponse()
         getStubMock.return_value = stubMock
 
         hostSearch = opencue.search.HostSearch(substr=['unittest_host'])
@@ -67,6 +68,18 @@ class JobSearchTests(unittest.TestCase):
         stubMock.GetJobs.assert_called_with(
             job_pb2.JobGetJobsRequest(r=job_pb2.JobSearchCriteria(shows=['pipe'], substr=['v6'])),
             timeout=mock.ANY)
+
+    def testRaiseIfNotList(self, getStubMock):
+        with self.assertRaises(TypeError):
+            opencue.search.raiseIfNotList('user', 'iamnotalist')
+
+        with self.assertRaises(TypeError):
+            opencue.search.raiseIfNotList('user', 42)
+
+        with self.assertRaises(TypeError):
+            opencue.search.raiseIfNotList('user', set(['iamnotalist']))
+
+        self.assertIsNone(opencue.search.raiseIfNotList('user', ['iamnotalist']))
 
 
 if __name__ == '__main__':

@@ -21,6 +21,9 @@ Module: filter.py - opencue Library implementation of spank filter
 
 """
 
+
+import enum
+
 from opencue import Cuebot
 from opencue.compiled_proto import filter_pb2
 from opencue.compiled_proto import job_pb2
@@ -40,8 +43,13 @@ __all__ = ["Filter", "Action", "Matcher",
 
 
 class Filter(object):
-    """This class contains the ice implementation related to a spank Filter."""
-    def __init__(self, filter):
+    """This class contains the grpc implementation related to a Filter."""
+
+    class FilterType(enum.IntEnum):
+        MATCH_ANY = filter_pb2.MATCH_ANY
+        MATCH_ALL = filter_pb2.MATCH_ALL
+
+    def __init__(self, filter=None):
         """_Filter class initialization"""
         self.data = filter
         self.stub = Cuebot.getStub('filter')
@@ -52,9 +60,9 @@ class Filter(object):
 
     def createMatcher(self, subject, matchType, query):
         """Creates a matcher for this filter
-        @type  subject: opencue.MatchSubject.*
+        @type  subject: filter_pb2.MatchSubject.*
         @param subject: The job attribute to match
-        @type  matchType: opencue.MatchType.*
+        @type  matchType: filter_pb2.MatchType.*
         @param matchType: The type of match to perform
         @type  query: string
         @param query: The value to match
@@ -71,7 +79,7 @@ class Filter(object):
 
     def createAction(self, actionType, value):
         """Creates an action for this filter.
-        @type  actionType: opencue.ActionType.*
+        @type  actionType: filter_pb2.ActionType.*
         @param actionType: The action to perform
         @type  value: Group or str, or int or bool
         @param value: Value relevant to the type selected
@@ -145,15 +153,18 @@ class Filter(object):
                             timeout=Cuebot.Timeout)
 
     def runFilterOnGroup(self, group):
+        """Runs the filter on the group provided
+        @type  group: list<opencue.wrapper.group.Group>
+        @param group: The group to run the filter on"""
         self.stub.RunFilterOnGroup(
-            filter_pb2.FilterRunFilterOnGroupRequest(filter=self.data, group=group),
+            filter_pb2.FilterRunFilterOnGroupRequest(filter=self.data, group=group.data),
             timeout=Cuebot.Timeout)
 
     def runFilterOnJobs(self, jobs):
         """Runs the filter on the list of jobs provided
-        @type  jobs: list<JobInterfacePrx or Job or id or str jobname>
-        @param jobs: The jobs to add to this group"""
-        jobSeq = job_pb2.JobSeq(jobs=jobs)
+        @type  jobs: list<opencue.wrapper.job.Job>
+        @param jobs: The jobs to run the filter on"""
+        jobSeq = job_pb2.JobSeq(jobs=[job.data for job in jobs])
         self.stub.RunFilterOnJobs(
             filter_pb2.FilterRunFilterOnJobsRequest(filter=self.data, jobs=jobSeq),
             timeout=Cuebot.Timeout)
@@ -174,7 +185,7 @@ class Filter(object):
 
     def setType(self, filterType):
         """Changes the filter type
-        @type  filterType: FilterType
+        @type  filterType: filter_pb2.FilterType
         @param filterType: The new filter type"""
         self.stub.SetType(filter_pb2.FilterSetTypeRequest(filter=self.data, type=filterType),
                           timeout=Cuebot.Timeout)
@@ -203,6 +214,27 @@ class Filter(object):
 
 
 class Action(object):
+
+    class ActionType(enum.IntEnum):
+        MOVE_JOB_TO_GROUP = filter_pb2.MOVE_JOB_TO_GROUP
+        PAUSE_JOB = filter_pb2.PAUSE_JOB
+        SET_JOB_MIN_CORES = filter_pb2.SET_JOB_MIN_CORES
+        SET_JOB_MAX_CORES = filter_pb2.SET_JOB_MAX_CORES
+        STOP_PROCESSING = filter_pb2.STOP_PROCESSING
+        SET_JOB_PRIORITY = filter_pb2.SET_JOB_PRIORITY
+        SET_ALL_RENDER_LAYER_TAGS = filter_pb2.SET_ALL_RENDER_LAYER_TAGS
+        SET_ALL_RENDER_LAYER_MEMORY = filter_pb2.SET_ALL_RENDER_LAYER_MEMORY
+        SET_ALL_RENDER_LAYER_CORES = filter_pb2.SET_ALL_RENDER_LAYER_CORES
+        SET_MEMORY_OPTIMIZER = filter_pb2.SET_MEMORY_OPTIMIZER
+
+    class ActionValueType(enum.IntEnum):
+        GROUP_TYPE = filter_pb2.GROUP_TYPE
+        STRING_TYPE = filter_pb2.STRING_TYPE
+        INTEGER_TYPE = filter_pb2.INTEGER_TYPE
+        FLOAT_TYPE = filter_pb2.FLOAT_TYPE
+        BOOLEAN_TYPE = filter_pb2.BOOLEAN_TYPE
+        NONE_TYPE = filter_pb2.NONE_TYPE
+
     def __init__(self, action=None):
         self.data = action
         self.stub = Cuebot.getStub('action')
@@ -295,6 +327,26 @@ class Action(object):
 
 
 class Matcher(object):
+
+    class MatchSubject(enum.IntEnum):
+        JOB_NAME = filter_pb2.JOB_NAME
+        SHOW = filter_pb2.SHOW
+        SHOT = filter_pb2.SHOT
+        USER = filter_pb2.USER
+        SERVICE_NAME = filter_pb2.SERVICE_NAME
+        PRIORITY = filter_pb2.PRIORITY
+        FACILITY = filter_pb2.FACILITY
+        LAYER_NAME = filter_pb2.LAYER_NAME
+
+    class MatchType(enum.IntEnum):
+        CONTAINS = filter_pb2.CONTAINS
+        DOES_NOT_CONTAIN = filter_pb2.DOES_NOT_CONTAIN
+        IS = filter_pb2.IS
+        IS_NOT = filter_pb2.IS_NOT
+        REGEX = filter_pb2.REGEX
+        BEGINS_WITH = filter_pb2.BEGINS_WITH
+        ENDS_WITH = filter_pb2.ENDS_WITH
+
     def __init__(self, matcher=None):
         self.data = matcher
         self.stub = Cuebot.getStub('matcher')

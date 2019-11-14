@@ -21,6 +21,8 @@ Module: proc.py - opencue Library implementation of a proc
 
 """
 
+import enum
+
 from opencue.compiled_proto import host_pb2
 from opencue.cuebot import Cuebot
 import opencue.wrappers.frame
@@ -31,7 +33,15 @@ import opencue.wrappers.layer
 
 class Proc(object):
 
-    def __init__(self, proc):
+    class RedirectType(enum.IntEnum):
+        JOB_REDIRECT = host_pb2.JOB_REDIRECT
+        GROUP_REDIRECT = host_pb2.GROUP_REDIRECT
+
+    class RunState(enum.IntEnum):
+        IDLE = host_pb2.IDLE
+        BOOKED = host_pb2.BOOKED
+
+    def __init__(self, proc=None):
         self.data = proc
         self.stub = Cuebot.getStub('proc')
 
@@ -50,7 +60,7 @@ class Proc(object):
 
     def getHost(self):
         """Return the host this proc is allocated from.
-        @rtype:  Host
+        @rtype:  opencue.wrappers.host.Host
         @return: The host this proc is allocated from."""
         response = self.stub.GetHost(host_pb2.ProcGetHostRequest(proc=self.data),
                                      timeout=Cuebot.Timeout)
@@ -58,7 +68,7 @@ class Proc(object):
 
     def getFrame(self):
         """Return the frame this proc is running.
-        @rtype:  Frame
+        @rtype:  opencue.wrappers.frame.Frame
         @return: The fame this proc is running."""
         response = self.stub.GetFrame(host_pb2.ProcGetFrameRequest(proc=self.data),
                                       timeout=Cuebot.Timeout)
@@ -66,7 +76,7 @@ class Proc(object):
 
     def getLayer(self):
         """Return the layer this proc is running.
-        @rtype:  Layer
+        @rtype:  opencue.wrappers.layer.Layer
         @return: The layer this proc is running."""
         response = self.stub.GetLayer(host_pb2.ProcGetLayerRequest(proc=self.data),
                                       timeout=Cuebot.Timeout)
@@ -74,7 +84,7 @@ class Proc(object):
 
     def getJob(self):
         """Return the job this proc is running.
-        @rtype:  Job
+        @rtype:  opencue.wrappers.job.Job
         @return: The job this proc is running."""
         response = self.stub.GetJob(host_pb2.ProcGetJobRequest(proc=self.data),
                                     timeout=Cuebot.Timeout)

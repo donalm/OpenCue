@@ -287,6 +287,13 @@ def _serialize(launcher, use_pycuerun):
         elif layer.get_arg("tags"):
             sub_element(spec_layer, "tags", scrub_tags(layer.get_arg("tags")))
 
+        layer_limits = layer.get_limits()
+        if layer_limits:
+            limits = Et.SubElement(spec_layer, "limits")
+            for limit_name in layer_limits:
+                limit = Et.SubElement(limits, "limit")
+                limit.text = limit_name
+
         services = Et.SubElement(spec_layer, "services")
         service = Et.SubElement(services, "service")
         try:
@@ -345,7 +352,7 @@ def build_dependencies(ol, layer, all_depends):
 
         depend = Et.SubElement(all_depends, "depend",
                                type=dep.get_type(),
-                               anyframe=str(dep.is_any_frame()))
+                               anyframe=bool_to_str(dep.is_any_frame()))
 
         if dep.get_type() == DependType.LayerOnSimFrame:
 

@@ -56,6 +56,7 @@ import six
 from opencue.compiled_proto import criterion_pb2
 from opencue.compiled_proto import host_pb2
 from opencue.compiled_proto import job_pb2
+import opencue.wrappers.host
 from .cuebot import Cuebot
 
 logger = logging.getLogger("opencue")
@@ -134,8 +135,9 @@ class HostSearch(BaseSearch):
     @classmethod
     def byOptions(cls, **options):
         criteria = cls.criteriaFromOptions(**options)
-        return Cuebot.getStub('host').GetHosts(
-            host_pb2.HostGetHostsRequest(r=criteria), timeout=Cuebot.Timeout)
+        return [
+            opencue.wrappers.host.Host(host) for host in Cuebot.getStub('host').GetHosts(
+                host_pb2.HostGetHostsRequest(r=criteria), timeout=Cuebot.Timeout).hosts.hosts]
 
     @classmethod
     def byName(cls, val):
@@ -261,34 +263,57 @@ def _createCriterion(search, searchType, convert=None):
     raise ValueError("Unable to parse this format: %s" % search)
 
 
+def _raiseIfNotType(searchOption, value, expectedType):
+    if not isinstance(value, list):
+        raise TypeError("Failed to set search option: '{}'. Expects type '{}', but got {}.".format(
+            searchOption, expectedType, type(value)))
+
+
+def raiseIfNotList(searchOption, value):
+    _raiseIfNotType(searchOption, value, list)
+
+
 def _setOptions(criteria, options):
 
     for k, v in options.items():
         if k == "job" or (k == "name" and isinstance(criteria, job_pb2.JobSearchCriteria)):
+            raiseIfNotList(k, v)
             criteria.jobs.extend(v)
         elif k == "host" or (k == "name" and isinstance(criteria, host_pb2.HostSearchCriteria)):
+            raiseIfNotList(k, v)
             criteria.hosts.extend(v)
         elif k == "frames" or (k == "name" and isinstance(criteria, job_pb2.FrameSearchCriteria)):
+            raiseIfNotList(k, v)
             criteria.frames.extend(v)
         elif k in("match", "substr"):
+            raiseIfNotList(k, v)
             criteria.substr.extend(v)
         elif k == "regex":
+            raiseIfNotList(k, v)
             criteria.regex.extend(v)
         elif k == "id":
+            raiseIfNotList(k, v)
             criteria.ids.extend(v)
         elif k == "show":
+            raiseIfNotList(k, v)
             criteria.shows.extend(v)
         elif k == "shot":
+            raiseIfNotList(k, v)
             criteria.shots.extend(v)
         elif k == "user":
+            raiseIfNotList(k, v)
             criteria.users.extend(v)
         elif k == "state" and isinstance(criteria, job_pb2.FrameSearchCriteria):
+            raiseIfNotList(k, v)
             criteria.states.frame_states.extend(v)
         elif k == "state" and isinstance(criteria, host_pb2.HostSearchCriteria):
+            raiseIfNotList(k, v)
             criteria.states.state.extend(v)
         elif k == "layer":
+            raiseIfNotList(k, v)
             criteria.layers.extend(v)
         elif k == "alloc":
+            raiseIfNotList(k, v)
             criteria.allocs.extend(v)
         elif k in ("range", "frames"):
             if not v:
@@ -307,8 +332,8 @@ def _setOptions(criteria, options):
                 # this can go away
                 criteria.memory_range = v
             else:
-                criteria.memory_range.append(_createCriterion(v, int,
-                                                      lambda mem: (1048576 * mem)))
+                criteria.memory_range.append(
+                    _createCriterion(v, int, lambda mem: (1048576 * mem)))
         elif k == "duration":
             if not v:
                 continue
@@ -317,10 +342,10 @@ def _setOptions(criteria, options):
                 # this can go away
                 criteria.duration_range = v
             else:
-                criteria.duration_range.append(_createCriterion(v, int,
-                                                        lambda duration:(60 * 60 * duration)))
+                criteria.duration_range.append(
+                    _createCriterion(v, int, lambda duration: (60 * 60 * duration)))
         elif k == "limit":
-            criteria.max_results.extend([int(v)])
+            criteria.max_results = int(v)
         elif k == "offset":
             criteria.first_result = int(v)
         elif k == "include_finished":

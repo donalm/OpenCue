@@ -20,6 +20,7 @@ Module: frame.py - opencue Library implementation of a frame
 """
 
 
+import enum
 import time
 
 from opencue import Cuebot
@@ -28,7 +29,29 @@ import opencue.wrappers.depend
 
 
 class Frame(object):
-    def __init__(self, frame):
+
+    class CheckpointState(enum.IntEnum):
+        DISABLED = job_pb2.DISABLED
+        ENABLED = job_pb2.ENABLED
+        COPYING = job_pb2.COPYING
+        COMPLETE = job_pb2.COMPLETE
+
+    class FrameExitStatus(enum.IntEnum):
+        SUCCESS = job_pb2.SUCCESS
+        NO_RETRY = job_pb2.NO_RETRY
+        SKIP_RETRY = job_pb2.SKIP_RETRY
+
+    class FrameState(enum.IntEnum):
+        WAITING = job_pb2.WAITING
+        SETUP = job_pb2.SETUP
+        RUNNING = job_pb2.RUNNING
+        SUCCEEDED = job_pb2.SUCCEEDED
+        DEPEND = job_pb2.DEPEND
+        DEAD = job_pb2.DEAD
+        EATEN = job_pb2.EATEN
+        CHECKPOINT = job_pb2.CHECKPOINT
+
+    def __init__(self, frame=None):
         """_Frame class initialization"""
         self.data = frame
         self.stub = Cuebot.getStub('frame')
@@ -68,34 +91,35 @@ class Frame(object):
 
     def createDependencyOnJob(self, job):
         """Create and return a frame on job dependency
-        @type  job: Job
+        @type  job: opencue.wrappers.job.Job
         @param job: the job you want this frame to depend on
-        @rtype:  Depend
+        @rtype:  opencue.wrappers.depend.Depend
         @return: The new dependency"""
         response = self.stub.CreateDependencyOnJob(
-            job_pb2.FrameCreateDependencyOnJobRequest(frame=self.data, job=job),
+            job_pb2.FrameCreateDependencyOnJobRequest(frame=self.data, job=job.data),
             timeout=Cuebot.Timeout)
         return opencue.wrappers.depend.Depend(response.depend)
 
     def createDependencyOnLayer(self, layer):
         """Create and return a frame on layer dependency
-        @type layer: Layer
+        @type layer: opencue.wrappers.layer.Layer
         @param layer: the layer you want this frame to depend on
-        @rtype:  Depend
+        @rtype:  opencue.wrappers.depend.Depend
         @return: The new dependency"""
         response = self.stub.CreateDependencyOnLayer(
-            job_pb2.FrameCreateDependencyOnLayerRequest(frame=self.data, layer=layer),
+            job_pb2.FrameCreateDependencyOnLayerRequest(frame=self.data, layer=layer.data),
             timeout=Cuebot.Timeout)
         return opencue.wrappers.depend.Depend(response.depend)
 
     def createDependencyOnFrame(self, frame):
         """Create and return a frame on frame dependency
-        @type frame: Frame
+        @type frame: opencue.wrappers.frame.Frame
         @param frame: the frame you want this frame to depend on
-        @rtype:  Depend
+        @rtype:  opencue.wrappers.depend.Depend
         @return: The new dependency"""
         response = self.stub.CreateDependencyOnFrame(
-            job_pb2.FrameCreateDependencyOnFrameRequest(frame=self.data, depend_on_frame=frame),
+            job_pb2.FrameCreateDependencyOnFrameRequest(frame=self.data,
+                                                        depend_on_frame=frame.data),
             timeout=Cuebot.Timeout)
         return opencue.wrappers.depend.Depend(response.depend)
 

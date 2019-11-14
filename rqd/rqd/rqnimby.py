@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-
 #  Copyright (c) 2018 Sony Pictures Imageworks Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +15,8 @@
 #  limitations under the License.
 
 
-"""
-Nimby allows a desktop to be used as a render host when not used.
+"""Nimby allows a desktop to be used as a render host when not used."""
 
-Project: RQD
-
-Module: rqnimby.py
-
-Contact: Middle-Tier
-
-SVN: $Id$
-"""
 
 import os
 import select
@@ -38,10 +28,11 @@ import logging as log
 import rqconstants
 import rqutil
 
+
 class Nimby(threading.Thread):
     """Nimby == Not In My Back Yard.
        If enabled, nimby will lock and kill all frames running on the host if
-       keyboard or mouse activitiy is detected. If sufficent idle time has
+       keyboard or mouse activity is detected. If sufficient idle time has
        passed, defined in the Constants class, nimby will then unlock the host
        and make it available for rendering."""
 
@@ -112,7 +103,7 @@ class Nimby(threading.Thread):
 
     def lockedInUse(self):
         """Nimby State: Machine is in use, host is locked,
-                        waiting for sufficent idle time"""
+                        waiting for sufficient idle time"""
         log.debug("lockedInUse")
         self._openEvents()
         try:
@@ -129,7 +120,7 @@ class Nimby(threading.Thread):
 
     def lockedIdle(self):
         """Nimby State: Machine is idle,
-                        waiting for sufficent idle time to unlock"""
+                        waiting for sufficient idle time to unlock"""
         log.debug("locked_idle")
         self._openEvents()
         waitStartTime = time.time()
@@ -187,41 +178,3 @@ class Nimby(threading.Thread):
         self.active = False
         self._closeEvents()
         self.unlockNimby()
-
-if __name__ == "__main__":
-    # For debugging
-
-    class machine:
-        def isNimbySafeToRunJobs(self):
-            log.debug("rqCore.machine: isNimbySafeToRunJobs()")
-            return True
-
-    class core:
-        """For testing"""
-        def __init__(self):
-            """For testing"""
-            self.machine = machine()
-
-        def onNimbyLock(self):
-            """For testing"""
-            log.debug("rqCore: onNimbyLock()")
-        def onNimbyUnlock(self, asOf=None):
-            """For testing"""
-            log.debug("rqCore: onNimbyUnlock()")
-
-    rqCore = core()
-
-    log.basicConfig(level=log.DEBUG)
-    nimby = Nimby(rqCore)
-    signal.signal(signal.SIGINT, nimby.signalHandler)
-    nimby.locked = True
-    nimby.checkIntervalLocked = 11
-    nimby.minimumIdle = 20
-    nimby.minimumMem = 0
-    nimby.maximumLoad = 0
-    nimby.start()
-
-    time.sleep(30)
-    print "calling stop"
-    nimby.stop()
-

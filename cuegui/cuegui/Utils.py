@@ -261,12 +261,16 @@ def shellOut(cmd):
     os.system("%s &" % cmd)
 
 
-def checkShellOut(cmdList):
+def checkShellOut(cmdList, lockGui=False):
     """Run the provided command and check it's results.
     Display an error message if the command failed
     @type: list<string>
     @param: The command to run as a space separated list.
+    @type: bool
+    @param: True will lock the gui while the cmd is executed, otherwise it is run in the background.
     """
+    if not lockGui:
+        cmdList.append('&')
     try:
         subprocess.check_call(cmdList)
     except subprocess.CalledProcessError as e:
@@ -445,13 +449,13 @@ def getLastLine(path):
 
 
 def popupTail(file, facility=None):
-    if not popupWeb(file, facility):
+    if file and not popupWeb(file, facility):
         JOB_LOG_CMD = "/usr/bin/xterm -sb -sl 4096 -n RQLOG -geometry 200x50+0+0 -title %s -e '/usr/bin/tail -n+0 -f %s'" % (os.path.basename(file), file)
         shellOut(JOB_LOG_CMD)
 
 
 def popupView(file, facility=None):
-    if not popupWeb(file, facility):
+    if file and not popupWeb(file, facility):
         editor_from_env = os.getenv('EDITOR')
         if editor_from_env:
             job_log_cmd = editor_from_env.split()
@@ -620,3 +624,8 @@ def showErrorMessageBox(text, title="ERROR!", detailedText=None):
         messageBox.setDetailedText(detailedText)
     messageBox.setStandardButtons(QtWidgets.QMessageBox.Close)
     return messageBox.exec_()
+
+def shutdownThread(thread):
+    """Shutdown a WorkerThread."""
+    thread.stop()
+    return thread.wait(1500)

@@ -1,4 +1,3 @@
-
 #  Copyright (c) 2018 Sony Pictures Imageworks Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,17 +13,8 @@
 #  limitations under the License.
 
 
-
 """
-Main RQD module, handles gRPC function implmentation and job launching.
-
-Project: RQD
-
-Module: rqcore.py
-
-Contact: Middle-Tier
-
-SVN: $Id$
+Main RQD module, handles gRPC function implementation and job launching.
 """
 
 import logging as log
@@ -47,14 +37,14 @@ from rqexceptions import CoreReservationFailureException
 from rqexceptions import DuplicateFrameViolationException
 from rqexceptions import InvalidUserException
 from rqexceptions import RqdException
-from rqmachine import Machine
-from rqnetwork import Network
+import rqd.rqmachine
+import rqd.rqnetwork
 from rqnetwork import RunningFrame
-from rqnimby import Nimby
+import rqd.rqnimby
 
 
 class FrameAttendantThread(threading.Thread):
-    """Once a frame has been recieved and checked by RQD, this class handles
+    """Once a frame has been received and checked by RQD, this class handles
        the launching, waiting on, and cleanup work related to running the
        frame."""
     def __init__(self, rqCore, runFrame, frameInfo):
@@ -63,7 +53,7 @@ class FrameAttendantThread(threading.Thread):
            @param   rqCore: Main RQD Object
            @type   runFrame: RunFrame
            @param  runFrame: rqd_pb2.RunFrame
-           @type  frameInfo: RunningFrame
+           @type  frameInfo: rqd.rqnetwork.RunningFrame
            @param frameInfo: Servant for running frame
         """
         threading.Thread.__init__(self)
@@ -371,7 +361,7 @@ class FrameAttendantThread(threading.Thread):
                                                        stdin=subprocess.PIPE,
                                                        stdout=self.rqlog,
                                                        stderr=self.rqlog,
-                                                       preexec_fn = os.setsid)
+                                                       preexec_fn=os.setsid)
         finally:
             rqutil.permissionsLow()
 
@@ -411,7 +401,7 @@ class FrameAttendantThread(threading.Thread):
         pass
 
     def run(self):
-        """Thread initilization"""
+        """Thread initialization"""
         log.info("Monitor frame started for frameId=%s", self.frameId)
 
         runFrame = self.runFrame
@@ -474,7 +464,7 @@ class FrameAttendantThread(threading.Thread):
                         err = "Unable to rotate previous log file due to %s" % e
                         raise RuntimeError, err
                     try:
-                        self.rqlog = file(runFrame.log_dir_file, "w", 0)
+                        self.rqlog = open(runFrame.log_dir_file, "w", 0)
                         self.waitForFile(runFrame.log_dir_file)
                     except Exception, e:
                         err = "Unable to write to %s due to %s" % (runFrame.log_dir_file, e)
@@ -527,8 +517,9 @@ class FrameAttendantThread(threading.Thread):
 
 class RqCore(object):
     """Main body of RQD, handles the integration of all components,
-       the setup and launching of a frame and acts on all ice calls
+       the setup and launching of a frame and acts on all gRPC calls
        that are passed from the Network module."""
+
     def __init__(self, optNimbyoff=False):
         """RqCore class initialization"""
         self.__whenIdle = False
@@ -544,15 +535,14 @@ class RqCore(object):
             booked_cores=0,
         )
 
-        self.nimby = Nimby(self)
+        self.nimby = rqd.rqnimby.Nimby(self)
 
-        self.machine = Machine(self, self.cores)
+        self.machine = rqd.rqmachine.Machine(self, self.cores)
 
-        self.network = Network(self)
+        self.network = rqd.rqnetwork.Network(self)
         self.__threadLock = threading.Lock()
         self.__cache = {}
 
-        self.shutdownThread = None
         self.updateRssThread = None
         self.onIntervalThread = None
         self.intervalStartTime = None
@@ -567,17 +557,19 @@ class RqCore(object):
 
     def start(self):
         """Called by main to start the rqd service"""
-        # If nimby should be on, start it
-        if rqconstants.OVERRIDE_NIMBY:
-            log.warning("Nimby startup has been triggered by OVERRIDE_NIMBY")
-            self.nimbyOn()
-        elif self.machine.isDesktop():
+        if self.machine.isDesktop():
             if self.__optNimbyoff:
-                log.warning("Nimby startup has been disabled via --nimbyoff")
+                log.warning('Nimby startup has been disabled via --nimbyoff')
             elif not rqconstants.OVERRIDE_NIMBY:
-                log.warning("Nimby startup has been disabled via OVERRIDE_NIMBY")
+                if rqconstants.OVERRIDE_NIMBY is None:
+                    log.warning('OVERRIDE_NIMBY is not defined, Nimby startup has been disabled')
+                else:
+                    log.warning('OVERRIDE_NIMBY is False, Nimby startup has been disabled')
             else:
                 self.nimbyOn()
+        elif rqconstants.OVERRIDE_NIMBY:
+            log.warning('Nimby startup has been triggered by OVERRIDE_NIMBY')
+            self.nimbyOn()
         self.network.start_grpc()
 
     def grpcConnected(self):
@@ -651,7 +643,7 @@ class RqCore(object):
         """Stores a frame in the cache and adds the network adapter
         @type  frameId: string
         @param frameId: A frame's unique Id
-        @type  runningFrame: RunningFrame
+        @type  runningFrame: rqd.rqnetwork.RunningFrame
         @param runningFrame: RunningFrame object"""
         self.__threadLock.acquire()
         try:
@@ -824,6 +816,9 @@ class RqCore(object):
             log.info("frameId {} is not running on this machine".format(frameId))
             return None
 
+    def getCoreInfo(self):
+        return self.cores
+
     def reportStatus(self, current=None):
         """Replies with hostReport"""
         return self.machine.getHostReport()
@@ -833,9 +828,8 @@ class RqCore(object):
         self.machine.state = host_pb2.DOWN
         self.lockAll()
         self.killAllFrame("shutdownRqdNow Command")
-        if not self.__cache and self.shutdownThread is None:
-            self.shutdownThread = threading.Timer(1, self.shutdown)
-            self.shutdownThread.start()
+        if not self.__cache:
+            self.shutdown()
 
     def shutdownRqdIdle(self):
         """When machine is idle, shutdown RQD"""
@@ -864,7 +858,8 @@ class RqCore(object):
            This is not available when a user is logged in"""
         log.warning('Requested to reboot now')
         if self.machine.isUserLoggedIn():
-            err = "Rebooting via RQD is not support for a desktop machine when a user is logged in"
+            err = ('Rebooting via RQD is not supported for a desktop machine '
+                   'when a user is logged in')
             log.warning(err)
             raise RqdException(err)
         self.__reboot = True
@@ -882,13 +877,13 @@ class RqCore(object):
 
     def nimbyOn(self):
         """Activates nimby, does not kill any running frames until next nimby
-           event. Also does not unlock until sufficent idle time is reached."""
+           event. Also does not unlock until sufficient idle time is reached."""
         if os.getuid() != 0:
             log.warning("Not starting nimby, not running as root")
             return
         if not self.nimby.active and platform.system() == "Linux":
             try:
-                self.nimby.start()
+                self.nimby.run()
                 log.info("Nimby has been activated")
             except:
                 self.nimby.locked = False
@@ -1019,3 +1014,6 @@ class RqCore(object):
 
     def sendStatusReport(self):
         self.network.reportStatus(self.machine.getHostReport())
+
+    def isWaitingForIdle(self):
+        return self.__whenIdle

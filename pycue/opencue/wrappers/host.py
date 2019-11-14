@@ -21,6 +21,7 @@ Module: host.py - opencue Library implementation of a host
 """
 
 
+import enum
 import os
 import time
 
@@ -32,7 +33,31 @@ import opencue.wrappers.proc
 
 
 class Host(object):
-    def __init__(self, host):
+
+    class HardwareState(enum.IntEnum):
+        UP = host_pb2.UP
+        DOWN = host_pb2.DOWN
+        REBOOTING = host_pb2.REBOOTING
+        REBOOT_WHEN_IDLE = host_pb2.REBOOT_WHEN_IDLE
+        REPAIR = host_pb2.REPAIR
+
+    class HostTagType(enum.IntEnum):
+        MANUAL = host_pb2.MANUAL
+        HARDWARE = host_pb2.HARDWARE
+        ALLOC = host_pb2.ALLOC
+        HOSTNAME = host_pb2.HOSTNAME
+
+    class LockState(enum.IntEnum):
+        OPEN = host_pb2.OPEN
+        LOCKED = host_pb2.LOCKED
+        NIMBY_LOCKED = host_pb2.NIMBY_LOCKED
+
+    class ThreadMode(enum.IntEnum):
+        AUTO = host_pb2.AUTO
+        ALL = host_pb2.ALL
+        VARIABLE = host_pb2.VARIABLE
+
+    def __init__(self, host=None):
         """Host class initialization"""
         self.data = host
         self.__id = host.id
@@ -54,7 +79,7 @@ class Host(object):
 
     def getProcs(self):
         """Returns a list of procs under this host.
-        @rtype: list<Proc>
+        @rtype: list<opencue.wrappers.proc.Proc>
         @return: A list of procs under this host
         """
         response = self.stub.GetProcs(host_pb2.HostGetProcsRequest(host=self.data),
@@ -111,7 +136,7 @@ class Host(object):
 
     def setAllocation(self, allocation):
         """Sets the host to the given allocation
-        @type allocation: Allocation
+        @type allocation: opencue.wrappers.allocation.Allocation
         @param allocation: An allocation object
         """
         self.stub.SetAllocation(
@@ -158,7 +183,7 @@ class Host(object):
 
     def setThreadMode(self, mode):
         """Set the thread mode to mode
-        @type mode: ThreadMode
+        @type mode: host_pb2.ThreadMode
         @param mode: ThreadMode to set host to
         """
         self.stub.SetThreadMode(host_pb2.HostSetThreadModeRequest(host=self.data, mode=mode),

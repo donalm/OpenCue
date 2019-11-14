@@ -191,13 +191,14 @@ class FilterTests(unittest.TestCase):
         stubMock.RunFilterOnGroup.return_value = filter_pb2.FilterRunFilterOnGroupResponse()
         getStubMock.return_value = stubMock
 
-        group = job_pb2.Group(name='testGroup')
+        group = opencue.wrappers.group.Group(
+            job_pb2.Group(name='testGroup'))
         filter = opencue.wrappers.filter.Filter(
             filter_pb2.Filter(name=TEST_FILTER_NAME))
         filter.runFilterOnGroup(group)
 
         stubMock.RunFilterOnGroup.assert_called_with(
-            filter_pb2.FilterRunFilterOnGroupRequest(filter=filter.data, group=group),
+            filter_pb2.FilterRunFilterOnGroupRequest(filter=filter.data, group=group.data),
             timeout=mock.ANY)
 
     def testRunFilterOnJobs(self, getStubMock):
@@ -205,8 +206,8 @@ class FilterTests(unittest.TestCase):
         stubMock.RunFilterOnJobs.return_value = filter_pb2.FilterRunFilterOnJobsResponse()
         getStubMock.return_value = stubMock
 
-        jobs = [job_pb2.Job(name='testJob')]
-        jobSeq = job_pb2.JobSeq(jobs=jobs)
+        jobs = [opencue.wrappers.job.Job(job_pb2.Job(name='testJob'))]
+        jobSeq = job_pb2.JobSeq(jobs=[job.data for job in jobs])
         filter = opencue.wrappers.filter.Filter(
             filter_pb2.Filter(name=TEST_FILTER_NAME))
         filter.runFilterOnJobs(jobs)
@@ -510,6 +511,40 @@ class MatcherTests(unittest.TestCase):
 
         matcherTrue = opencue.wrappers.filter.Matcher()
         self.assertTrue(matcherTrue.isNew())
+
+
+class FilterEnumTests(unittest.TestCase):
+
+    def testFilterType(self):
+        self.assertEqual(opencue.api.Filter.FilterType.MATCH_ANY,
+                         opencue.compiled_proto.filter_pb2.MATCH_ANY)
+        self.assertEqual(opencue.api.Filter.FilterType.MATCH_ANY, 0)
+
+
+class ActionEnumTests(unittest.TestCase):
+
+    def testActionType(self):
+        self.assertEqual(opencue.api.Action.ActionType.MOVE_JOB_TO_GROUP,
+                         opencue.compiled_proto.filter_pb2.MOVE_JOB_TO_GROUP)
+        self.assertEqual(opencue.api.Action.ActionType.MOVE_JOB_TO_GROUP, 0)
+      
+    def testActionValueType(self):
+        self.assertEqual(opencue.api.Action.ActionValueType.INTEGER_TYPE,
+                         opencue.compiled_proto.filter_pb2.INTEGER_TYPE)
+        self.assertEqual(opencue.api.Action.ActionValueType.INTEGER_TYPE, 2)
+
+
+class MatcherEnumTests(unittest.TestCase):
+
+    def testMatchSubject(self):
+        self.assertEqual(opencue.api.Matcher.MatchSubject.JOB_NAME,
+                         opencue.compiled_proto.filter_pb2.JOB_NAME)
+        self.assertEqual(opencue.api.Matcher.MatchSubject.JOB_NAME, 0)
+
+    def testMatchType(self):
+        self.assertEqual(opencue.api.Matcher.MatchType.IS,
+                         opencue.compiled_proto.filter_pb2.IS)
+        self.assertEqual(opencue.api.Matcher.MatchType.IS, 2)
 
 
 if __name__ == '__main__':

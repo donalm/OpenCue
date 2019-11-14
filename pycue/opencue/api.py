@@ -34,6 +34,7 @@ from opencue.compiled_proto import facility_pb2
 from opencue.compiled_proto import filter_pb2
 from opencue.compiled_proto import host_pb2
 from opencue.compiled_proto import job_pb2
+from opencue.compiled_proto import limit_pb2
 from opencue.compiled_proto import renderPartition_pb2
 from opencue.compiled_proto import report_pb2
 from opencue.compiled_proto import service_pb2
@@ -44,12 +45,15 @@ from .cuebot import Cuebot
 from .wrappers.allocation import Allocation
 from .wrappers.comment import Comment
 from .wrappers.depend import Depend
+from .wrappers.filter import Action
 from .wrappers.filter import Filter
+from .wrappers.filter import Matcher
 from .wrappers.frame import Frame
 from .wrappers.group import Group
 from .wrappers.host import Host, NestedHost
 from .wrappers.job import Job
 from .wrappers.layer import Layer
+from .wrappers.limit import Limit
 from .wrappers.owner import Owner
 from .wrappers.proc import Proc
 from .wrappers.service import Service
@@ -62,8 +66,8 @@ __protobufs = [comment_pb2, criterion_pb2, cue_pb2, department_pb2, depend_pb2, 
                filter_pb2, host_pb2, job_pb2, renderPartition_pb2, report_pb2, service_pb2, show_pb2,
                subscription_pb2, task_pb2]
 
-__wrappers = [Allocation, Comment, Depend, Filter, Frame, Group, Host, Job, Layer, NestedHost, Proc,
-              Show, Subscription, Task]
+__wrappers = [Action, Allocation, Comment, Depend, Filter, Frame, Group, Host, Job, Layer, Matcher,
+              NestedHost, Proc, Show, Subscription, Task]
 
 
 #
@@ -277,13 +281,13 @@ def getJobs(**options):
     getJobs(show=["pipe"]) would return only pipe jobs.
 
     Possible args:
-        - job: job names
-        - match:  job name substring match
-        - regex: a job name search by regular expression
-        - id: a job search by unique id
-        - show: show names
-        - shot: shot names
-        - user: user names
+        - job: job names - list
+        - match:  job name substring match - str
+        - regex: a job name search by regular expression - str
+        - id: a job search by unique id - str
+        - show: show names - list
+        - shot: shot names - list
+        - user: user names - list
 
     @rtype:  List<Job>
     @return: a list of jobs
@@ -460,17 +464,16 @@ def getHosts(**options):
     getHosts(match=["vrack"]) would return all vrack procs.
 
     Possible args:
-       - host: host names
-       - match: host name substring match
-       - regex: a host name search by regular expression
-       - id: a search by unique id
-       - alloc: search by allocation.
+       - host: host names - list
+       - match: host name substring match - str
+       - regex: a host name search by regular expression - str
+       - id: a search by unique id - str
+       - alloc: search by allocation. - list
 
     @rtype:  List<Host>
     @return: a list of hosts
     """
-    hostSeq = search.HostSearch.byOptions(**options).hosts
-    return [Host(h) for h in hostSeq.hosts]
+    return search.HostSearch.byOptions(**options)
 
 
 @util.grpcExceptionParser
@@ -626,16 +629,16 @@ def getProcs(**options):
     getProcs(show=["pipe"]) would return procs running pipe jobs.
 
     Possible args:
-       - host: host names
-       - jobs: job names
-       - layer: layer names
-       - show: show names
-       - alloc: allocation names
-       - memory: used memory in gigabytes
+       - host: host names - list
+       - jobs: job names - list
+       - layer: layer names - list
+       - show: show names - list
+       - alloc: allocation names - list
+       - memory: used memory in gigabytes - str
          - "gt5" is greater than 5 gigs
          - "lt5" is less than 5 gigs
          - "5-10" is range of 5 to 10 gigs
-       - duration: run time in hours
+       - duration: run time in hours - str
          - "gt5" is greater than 5 hours
          - "lt5" is less than 5 hours
          - "5-10" is range of 5 to 10 hours
@@ -644,3 +647,27 @@ def getProcs(**options):
     @return: a list of procs"""
     procSeq = search.ProcSearch.byOptions(**options).procs
     return [Proc(p) for p in procSeq.procs]
+
+#
+# Limits
+#
+@util.grpcExceptionParser
+def createLimit(name, maxValue):
+    """Create a new Limit with the given name and max value.
+    @type name: str
+    @param name: Name of the new Limit.
+    @type maxValue: int
+    @param maxValue: Maximum number of running frames for this limit.
+    @rtype: opencue.wrappers.limit.Limit
+    @return: The newly created Limit
+    """
+    return Limit(Cuebot.getStub('limit').Create(
+        limit_pb2.LimitCreateRequest(name=name, max_value=maxValue), timeout=Cuebot.Timeout))
+
+@util.grpcExceptionParser
+def getLimits():
+    """Return a list of all known Limits.
+    @rtype: list<Limit>
+    @return: List of limit objects."""
+    return [Limit(limit) for limit in Cuebot.getStub('limit').GetAll(
+        limit_pb2.LimitGetAllRequest(), timeout=Cuebot.Timeout).limits]

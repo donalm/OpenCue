@@ -323,7 +323,7 @@ class JobActions(AbstractActions):
                                              "Eat all DEAD frames in selected jobs?",
                                              [job.data.name for job in jobs]):
                 for job in jobs:
-                    job.eatFrames(state=opencue.compiled_proto.job_pb2.DEAD)
+                    job.eatFrames(state=[opencue.compiled_proto.job_pb2.DEAD])
                 self._update()
 
     autoEatOn_info = ["Enable auto eating", None, "eat"]
@@ -332,7 +332,7 @@ class JobActions(AbstractActions):
         if jobs:
             for job in jobs:
                 job.setAutoEat(True)
-                job.eatFrames(state=opencue.compiled_proto.job_pb2.DEAD)
+                job.eatFrames(state=[opencue.compiled_proto.job_pb2.DEAD])
             self._update()
 
     autoEatOff_info = ["Disable auto eating", None, "eat"]
@@ -349,7 +349,7 @@ class JobActions(AbstractActions):
         if jobs:
             if cuegui.Utils.questionBoxYesNo(self._caller, "Confirm",
                                              "Retry all DEAD frames in selected jobs?",
-                                            [job.data.name for job in jobs]):
+                                             [job.data.name for job in jobs]):
                 for job in jobs:
                     job.retryFrames(
                         state=[opencue.compiled_proto.job_pb2.DEAD])
@@ -381,7 +381,7 @@ class JobActions(AbstractActions):
     def viewComments(self, rpcObjects=None):
         jobs = self._getOnlyJobObjects(rpcObjects)
         if jobs:
-            cuegui.Comments.CommentListDialog(jobs[0],self._caller).show()
+            cuegui.Comments.CommentListDialog(jobs[0], self._caller).show()
 
     dependWizard_info = ["Dependency &Wizard...", None, "configure"]
     def dependWizard(self, rpcObjects=None):
@@ -587,6 +587,7 @@ class LayerActions(AbstractActions):
         if layers:
             dialog = cuegui.LayerDialog.LayerPropertiesDialog(layers)
             dialog.exec_()
+            self._update()
 
     setTags_info = ["Set Tags", None, "configure"]
     def setTags(self, rpcObjects=None):
@@ -636,8 +637,8 @@ class LayerActions(AbstractActions):
             if cuegui.Utils.questionBoxYesNo(self._caller, "Confirm",
                                              "Retry all DEAD frames in selected layers?",
                                              [layer.data.name for layer in layers]):
-                layers[-1].parent.retryFrames(layer=[layer.data.name for layer in layers],
-                                              state=[opencue.api.job_pb2.DEAD])
+                layers[-1].parent().retryFrames(layer=[layer.data.name for layer in layers],
+                                                state=[opencue.api.job_pb2.DEAD])
                 self._update()
 
     markdone_info = ["Mark done", None, "markdone"]
@@ -648,7 +649,7 @@ class LayerActions(AbstractActions):
                                              "Mark done ALL frames in selected layers?",
                                              [layer.data.name for layer in layers]):
                 for layer in layers:
-                    layer.markdoneFrames()
+                    layer.markdone()
                 self._update()
 
     dependWizard_info = ["Dependency &Wizard...", None, "configure"]
@@ -758,7 +759,7 @@ class FrameActions(AbstractActions):
         if frames:
             job = self._getSource()
             path = cuegui.Utils.getFrameLogFile(job, frames[0])
-            files = dict((int(j.split(".")[-1]),j) for j in glob.glob("%s.*" % (path)) if j[-1].isdigit())
+            files = dict((int(j.split(".")[-1]), j) for j in glob.glob("%s.*" % path) if j[-1].isdigit())
             if files:
                 cuegui.Utils.popupView(files[sorted(files.keys())[-1]])
             else:
@@ -856,8 +857,7 @@ class FrameActions(AbstractActions):
             if cuegui.Utils.questionBoxYesNo(self._caller, "Confirm",
                                              "Eat selected frames?",
                                              names):
-                frameSearch = opencue.search.FrameSearch(name=names)
-                self._getSource().eatFrames(frameSearch)
+                self._getSource().eatFrames(name=names)
                 self._update()
 
     kill_info = ["&Kill", None, "kill"]
@@ -878,8 +878,7 @@ class FrameActions(AbstractActions):
                                              "Mark selected frames as waiting?\n"
                                              "(Ignores all of the frames's dependencies once)",
                                              names):
-                frameSearch = opencue.search.FrameSearch(name=names)
-                self._getSource().markAsWaiting(frameSearch)
+                self._getSource().markAsWaiting(name=names)
                 self._update()
 
     dropDepends_info = ["D&rop depends", None, "configure"]
@@ -910,8 +909,7 @@ class FrameActions(AbstractActions):
                                              "Mark done all selected frames?\n"
                                              "(Drops any dependencies that are waiting on these frames)",
                                              frameNames):
-                frameSearch = opencue.search.FrameSearch(name=frameNames)
-                self._getSource().markDoneFrames(frameSearch)
+                self._getSource().markdoneFrames(name=frameNames)
                 self._update()
 
     reorder_info = ["Reorder...", None, "configure"]
@@ -973,7 +971,7 @@ class FrameActions(AbstractActions):
                                       "layer will be dropped as well.",
                                       frameNames):
 
-                # Mark done the layers to drop their dependences if the layer is done
+                # Mark done the layers to drop their dependencies if the layer is done
 
                 if len(frames) == 1:
                     # Since only a single frame selected, check if layer is only one frame
@@ -981,15 +979,14 @@ class FrameActions(AbstractActions):
                                                   frames[0].data.layer_name)
                     if layer.data.layer_stats.total_frames == 1:
                         # Single frame selected of single frame layer, mark done and eat it all
-                        layer.eatFrames()
-                        layer.markdoneFrames()
+                        layer.eat()
+                        layer.markdone()
 
                         self._update()
                         return
 
-                frameSearch = opencue.search.FrameSearch(name=frameNames)
-                self._getSource().eatFrames(frameSearch)
-                self._getSource().markDoneFrames(frameSearch)
+                self._getSource().eatFrames(name=frameNames)
+                self._getSource().markdoneFrames(name=frameNames)
 
                 # Warning: The below assumes that eaten frames are desired to be markdone
 
@@ -998,8 +995,8 @@ class FrameActions(AbstractActions):
                 time.sleep(1)
                 for layer in self._getSource().getLayers():
                     if layer.data.name in layerNames:
-                        if layer.stats.eaten_frames + layer.stats.succeeded_frames == layer.stats.total_frames:
-                            layer.markdoneFrames()
+                        if layer.data.layer_stats.eaten_frames + layer.data.layer_stats.succeeded_frames == layer.data.layer_stats.total_frames:
+                            layer.markdone()
                 self._update()
 
 
@@ -1586,6 +1583,64 @@ class TaskActions(AbstractActions):
                 for task in tasks:
                     task.delete()
                 self._update()
+          
+
+class LimitActions(AbstractActions):
+    def __init__(self, *args):
+        AbstractActions.__init__(self, *args)
+
+    create_info = ["Creaet Limit", None, "configure"]
+    def create(self, rpcObjects=None):
+        title = "Add Limit"
+        body = "Enter a name for the new limit."
+        
+        (limit, choice) = self.getText(title, body, "")
+        if choice:
+            limit = limit.strip()
+            self.cuebotCall(opencue.api.createLimit,
+                            "Creating Limit {} has Failed.".format(limit),
+                            *[limit, 0])
+            self._update()
+
+    delete_info = ["Delete Limit", None, "kill"]
+    def delete(self, rpcObjects=None):
+        limits = self._getSelected(rpcObjects)
+        if limits:
+            if cuegui.Utils.questionBoxYesNo(self._caller, "Confirm",
+                                             "Delete selected limits?",
+                                             [limit.data.name for limit in limits]):
+                for limit in limits:
+                    limit.delete()
+                self._update()
+
+    editMaxValue_info = ["Edit Max Value", None, "configure"]
+    def editMaxValue(self, rpcObjects=None):
+        limits = self._getSelected(rpcObjects)
+        if limits:
+            current = max([limit.data.max_value for limit in limits])
+            title = "Edit Max Value"
+            body = "Please enter the new Limit max value:"
+            (value, choice) = QtWidgets.QInputDialog.getDouble(self._caller,
+                                                               title, body,
+                                                               current,
+                                                               0, 999999999, 0)
+            if choice:
+                for limit in limits:
+                    self.cuebotCall(limit.setMaxValue,
+                                    "Set Max Value on Limit %s Failed" % limit.data.name,
+                                    int(value))
+                self._update()
+        
+    rename_info = ["Rename", None, "configure"]
+    def rename(self, rpcObjects=None):
+        limits = self._getSelected(rpcObjects)
+        if limits and len(limits) == 1:
+            title = "Rename a Limit"
+            body = "Please enter the new Limit name:"
+            (value, choice) = QtWidgets.QInputDialog.getText(self._caller, title, body)
+            if choice:
+                self.cuebotCall(limits[0].rename, "Rename failed.", value)
+            self._update()
 
 
 class MenuActions(object):
@@ -1686,3 +1741,8 @@ class MenuActions(object):
         if not hasattr(self, "_tasks"):
             self._tasks = TaskActions(*self.__getArgs())
         return self._tasks
+    
+    def limits(self):
+        if not hasattr(self, "_limits"):
+            self._limits = LimitActions(*self.__getArgs())
+        return self._limits

@@ -111,12 +111,13 @@ class FrameTests(unittest.TestCase):
         dependFrameName = 'frameDependTest'
         frame = opencue.wrappers.frame.Frame(
             job_pb2.Frame(name=TEST_FRAME_NAME))
-        dependOnFrame = job_pb2.Frame(name=dependFrameName)
+        dependOnFrame = opencue.wrappers.frame.Frame(
+            job_pb2.Frame(name=dependFrameName))
         depend = frame.createDependencyOnFrame(dependOnFrame)
 
         stubMock.CreateDependencyOnFrame.assert_called_with(
             job_pb2.FrameCreateDependencyOnFrameRequest(frame=frame.data,
-                                                        depend_on_frame=dependOnFrame),
+                                                        depend_on_frame=dependOnFrame.data),
             timeout=mock.ANY)
         self.assertEqual(depend.id(), dependId)
 
@@ -130,11 +131,12 @@ class FrameTests(unittest.TestCase):
         dependJobName = 'jobDependTest'
         frame = opencue.wrappers.frame.Frame(
             job_pb2.Frame(name=TEST_FRAME_NAME, state=job_pb2.RUNNING))
-        dependOnJob = job_pb2.Job(name=dependJobName)
+        dependOnJob = opencue.wrappers.job.Job(
+            job_pb2.Job(name=dependJobName))
         depend = frame.createDependencyOnJob(dependOnJob)
 
         stubMock.CreateDependencyOnJob.assert_called_with(
-            job_pb2.FrameCreateDependencyOnJobRequest(frame=frame.data, job=dependOnJob),
+            job_pb2.FrameCreateDependencyOnJobRequest(frame=frame.data, job=dependOnJob.data),
             timeout=mock.ANY)
         self.assertEqual(depend.id(), dependId)
 
@@ -148,11 +150,12 @@ class FrameTests(unittest.TestCase):
         dependLayerName = 'layerDependTest'
         frame = opencue.wrappers.frame.Frame(
             job_pb2.Frame(name=TEST_FRAME_NAME, state=job_pb2.RUNNING))
-        dependOnLayer = job_pb2.Layer(name=dependLayerName)
+        dependOnLayer = opencue.wrappers.layer.Layer(
+            job_pb2.Layer(name=dependLayerName))
         depend = frame.createDependencyOnLayer(dependOnLayer)
 
         stubMock.CreateDependencyOnLayer.assert_called_with(
-            job_pb2.FrameCreateDependencyOnLayerRequest(frame=frame.data, layer=dependOnLayer),
+            job_pb2.FrameCreateDependencyOnLayerRequest(frame=frame.data, layer=dependOnLayer.data),
             timeout=mock.ANY)
         self.assertEqual(depend.id(), dependId)
 
@@ -189,6 +192,24 @@ class FrameTests(unittest.TestCase):
         runningFrame = opencue.wrappers.frame.Frame(
             job_pb2.Frame(name=TEST_FRAME_NAME, start_time=startTime, stop_time=stopTime))
         self.assertEqual(runningFrame.runTime(), expected)
+
+
+class FrameEnumTests(unittest.TestCase):
+
+    def testCheckpointState(self):
+        self.assertEqual(opencue.api.Frame.CheckpointState.DISABLED,
+                         opencue.compiled_proto.job_pb2.DISABLED)
+        self.assertEqual(opencue.api.Frame.CheckpointState.DISABLED, 0)
+
+    def testFrameExitStatus(self):
+        self.assertEqual(opencue.api.Frame.FrameExitStatus.NO_RETRY,
+                         opencue.compiled_proto.job_pb2.NO_RETRY)
+        self.assertEqual(opencue.api.Frame.FrameExitStatus.NO_RETRY, 256)
+
+    def testFrameState(self):
+        self.assertEqual(opencue.api.Frame.FrameState.RUNNING,
+                         opencue.compiled_proto.job_pb2.RUNNING)
+        self.assertEqual(opencue.api.Frame.FrameState.RUNNING, 2)
 
 
 if __name__ == '__main__':
