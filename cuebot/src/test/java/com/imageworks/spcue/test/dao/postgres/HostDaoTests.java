@@ -33,7 +33,6 @@ import org.springframework.test.context.junit4.AbstractTransactionalJUnit4Spring
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 import org.springframework.test.context.transaction.AfterTransaction;
 import org.springframework.test.context.transaction.BeforeTransaction;
-import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.imageworks.spcue.DispatchHost;
@@ -61,7 +60,6 @@ import static org.junit.Assert.assertTrue;
 
 @Transactional
 @ContextConfiguration(classes=TestAppConfig.class, loader=AnnotationConfigContextLoader.class)
-@TransactionConfiguration(transactionManager="transactionManager")
 public class HostDaoTests extends AbstractTransactionalJUnit4SpringContextTests  {
 
     @Autowired
@@ -500,7 +498,7 @@ public class HostDaoTests extends AbstractTransactionalJUnit4SpringContextTests 
 
         String tag = jdbcTemplate.queryForObject(
                 "SELECT str_tags FROM host WHERE pk_host=?",String.class, host.id);
-        assertEquals("unassigned beta frick jack", tag);
+        assertEquals("unassigned beta 64bit frick jack linux", tag);
     }
 
     @Test
@@ -522,18 +520,18 @@ public class HostDaoTests extends AbstractTransactionalJUnit4SpringContextTests 
 
         String tag = jdbcTemplate.queryForObject(
                 "SELECT str_tags FROM host WHERE pk_host=?",String.class, host.id);
-        assertEquals("unassigned beta", tag);
+        assertEquals("unassigned beta 64bit linux", tag);
 
         hostDao.removeTag(host, "linux");
         hostDao.recalcuateTags(host.id);
 
-        assertEquals("unassigned beta", jdbcTemplate.queryForObject(
+        assertEquals("unassigned beta 64bit", jdbcTemplate.queryForObject(
                 "SELECT str_tags FROM host WHERE pk_host=?",String.class, host.id));
 
-        hostDao.tagHost(host, "32bit",HostTagType.MANUAL);
+        hostDao.tagHost(host, "32bit", HostTagType.MANUAL);
         hostDao.recalcuateTags(host.id);
 
-        assertEquals("unassigned beta 32bit", jdbcTemplate.queryForObject(
+        assertEquals("unassigned beta 32bit 64bit", jdbcTemplate.queryForObject(
                 "SELECT str_tags FROM host WHERE pk_host=?",String.class, host.id));
     }
 

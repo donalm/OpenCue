@@ -54,6 +54,7 @@ from opencue.compiled_proto import subscription_pb2
 from opencue.compiled_proto import subscription_pb2_grpc
 from opencue.compiled_proto import task_pb2
 from opencue.compiled_proto import task_pb2_grpc
+from opencue.exception import ConnectionException
 from opencue.exception import CueException
 
 
@@ -179,8 +180,8 @@ class Cuebot(object):
                 continue
             atexit.register(Cuebot.closeChannel)
             return None
-        raise CueException('No grpc connection could be established. ' +
-                           'Please check configured cuebot hosts.')
+        raise ConnectionException('No grpc connection could be established. ' +
+                                  'Please check configured cuebot hosts.')
 
     @staticmethod
     def closeChannel():
@@ -200,8 +201,9 @@ class Cuebot(object):
     def setFacility(facility):
         """Sets the facility to connect to. If an unknown facility is provided,
         it will fall back to the one listed in cuebot.facility_default
-        @type  facility: str
-        @param facility: a facility named in the config file"""
+
+        :type  facility: str
+        :param facility: a facility named in the config file"""
         if facility not in list(config.get("cuebot.facility").keys()):
             default = config.get("cuebot.facility_default")
             logger.warning("The facility '%s' does not exist, defaulting to %s"%
@@ -214,8 +216,9 @@ class Cuebot(object):
     @staticmethod
     def setHosts(hosts):
         """Sets the cuebot host names to connect to.
-        @param hosts: a list of hosts or a host
-        @type hosts: list<str> or str"""
+
+        :param hosts: a list of hosts or a host
+        :type hosts: list<str> or str"""
         if isinstance(hosts, str):
             hosts = [hosts]
         logger.debug("setting new server hosts to: %s" % hosts)
@@ -225,8 +228,9 @@ class Cuebot(object):
     @staticmethod
     def setTimeout(timeout):
         """Sets the default network timeout.
-        @param timeout: The network connection timeout in millis.
-        @type timeout: int
+
+        :param timeout: The network connection timeout in millis.
+        :type timeout: int
         """
         logger.debug("setting new server timeout to: %d" % timeout)
         Cuebot.Timeout = timeout
@@ -249,8 +253,9 @@ class Cuebot(object):
     def getStub(cls, name):
         """Get the matching stub from the SERVICE_MAP.
         Reuse an existing one if possible.
-        @param name: name of stub key for SERVICE_MAP
-        @type name: str"""
+
+        :param name: name of stub key for SERVICE_MAP
+        :type name: str"""
         if Cuebot.RpcChannel is None:
             cls.init()
 

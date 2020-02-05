@@ -18,7 +18,13 @@ Constants.
 """
 
 
-import commands
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
+from future import standard_library
+standard_library.install_aliases()
+import subprocess
 import logging
 import os
 import platform
@@ -45,7 +51,9 @@ DEFAULT_FACILITY = 'cloud'
 # GRPC VALUES
 RQD_GRPC_MAX_WORKERS = 10
 RQD_GRPC_PORT = 8444
-RQD_GRPC_SLEEP = 60 * 60 * 24
+RQD_GRPC_SLEEP_SEC = 60 * 60 * 24
+RQD_GRPC_CONNECTION_ATTEMPT_SLEEP_SEC = 15
+RQD_GRPC_RETRY_CONNECTION = True
 CUEBOT_GRPC_PORT = 8443
 
 # RQD behavior:
@@ -92,7 +100,11 @@ PATH_MEMINFO = "/proc/meminfo"
 if platform.system() == 'Linux':
     SYS_HERTZ = os.sysconf('SC_CLK_TCK')
 
-CONFIG_FILE = '/etc/opencue/rqd.conf'
+if platform.system() == 'Windows':
+    CONFIG_FILE = os.path.expandvars('$LOCALAPPDATA/OpenCue/rqd.conf')
+else:
+    CONFIG_FILE = '/etc/opencue/rqd.conf'
+
 if '-c' in sys.argv:
     CONFIG_FILE = sys.argv[sys.argv.index('-c') + 1]
 
@@ -105,7 +117,7 @@ ALLOW_GPU = False
 ALLOW_PLAYBLAST = False
 LOAD_MODIFIER = 0 # amount to add/subtract from load
 
-if commands.getoutput('/bin/su --help').find('session-command') != -1:
+if subprocess.getoutput('/bin/su --help').find('session-command') != -1:
     SU_ARGUEMENT = '--session-command'
 else:
     SU_ARGUEMENT = '-c'
@@ -148,8 +160,9 @@ try:
     if os.path.isfile(CONFIG_FILE):
         # Hostname can come from here: rqutil.getHostname()
         __section = "Override"
-        import ConfigParser
-        config = ConfigParser.RawConfigParser()
+        import configparser
+        config = configparser.RawConfigParser()
+        logging.info('Loading config {}'.format(CONFIG_FILE))
         config.read(CONFIG_FILE)
         if config.has_option(__section, "OVERRIDE_CORES"):
             OVERRIDE_CORES = config.getint(__section, "OVERRIDE_CORES")
@@ -173,6 +186,6 @@ try:
             DEFAULT_FACILITY = config.get(__section, "DEFAULT_FACILITY")
         if config.has_option(__section, "LAUNCH_FRAME_USER_GID"):
             LAUNCH_FRAME_USER_GID = config.getint(__section, "LAUNCH_FRAME_USER_GID")
-except Exception, e:
+except Exception as e:
     logging.warning("Failed to read values from config file %s due to %s at %s" % (CONFIG_FILE, e, traceback.extract_tb(sys.exc_info()[2])))
 
