@@ -4,7 +4,7 @@ export BASEDIR=$(cd -P -- "$(dirname -- "$(/usr/bin/realpath -- "$(dirname -- "$
 source "${BASEDIR}/bin/tooling/database_credentials.sh"
 
 cd $BASEDIR
-jarfile="${BASEDIR}/cuebot/build/libs/cuebot-all.jar"
+jarfile="${BASEDIR}/cuebot/build/libs/cuebot.jar"
 
 exec java -jar $jarfile \
     --datasource.cueDataSource.url=jdbc:postgresql://$DB_HOST/$DB_NAME \

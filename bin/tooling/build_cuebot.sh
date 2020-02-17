@@ -8,4 +8,4 @@ export BASEDIR="$(dirname $BINDIR)"
 $BINDIR/tooling/create_database.sh
 
 cd "${BASEDIR}/cuebot"
-./gradlew shadowJar
+./gradlew build
